@@ -75,7 +75,7 @@ Checks whether both `name` and `company_domain` are present. If either is missin
 
 1. Open n8n
 2. Click the **+** menu → **Import from file**
-3. Select `task17_relational_data_merger.json`
+3. Select `Leader Bolt Assignment.json`
 4. Click **Execute Workflow**
 
 No credentials or external services required. Everything runs locally with mock data.
