@@ -1,0 +1,254 @@
+{
+  "name": "Leader Bolt Assignment",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Deduplicate Stream 1 by email — keep first occurrence only\nconst seen = new Set();\nconst deduped = [];\n\nfor (const item of items) {\n  const email = item.json.email?.toLowerCase().trim();\n  if (!seen.has(email)) {\n    seen.add(email);\n    deduped.push(item);\n  }\n}\n\nconsole.log(`Stream 1: ${items.length} records in → ${deduped.length} after dedup`);\nreturn deduped;"
+      },
+      "id": "222425bd-b83d-4267-a5f5-344ebbc5bbb0",
+      "name": "Dedup Stream 1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1344,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Deduplicate Stream 2 by email — keep first occurrence only\nconst seen = new Set();\nconst deduped = [];\n\nfor (const item of items) {\n  const email = item.json.email?.toLowerCase().trim();\n  if (!seen.has(email)) {\n    seen.add(email);\n    deduped.push(item);\n  }\n}\n\nconsole.log(`Stream 2: ${items.length} records in → ${deduped.length} after dedup`);\nreturn deduped;"
+      },
+      "id": "4cd67aad-c606-46c6-9811-d81f6ad90e7c",
+      "name": "Dedup Stream 2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1344,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "email",
+        "joinMode": "keepEverything",
+        "options": {}
+      },
+      "id": "5ef56885-044d-4380-81b8-7c350cc051a1",
+      "name": "Merge – Join on Email",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        -1072,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-001",
+              "leftValue": "={{ $json.company_domain }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "cond-002",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8225c092-0c11-4e79-81ec-de8f558df22b",
+      "name": "Matched or Unmatched?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fully matched records — output clean unified object\nreturn items.map(item => ({\n  json: {\n    name:           item.json.name,\n    email:          item.json.email,\n    company_domain: item.json.company_domain,\n    status:         \"matched\"\n  }\n}));"
+      },
+      "id": "d26abfa7-9c0b-488f-bb6e-8f5e4ec942bf",
+      "name": "Matched Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Unmatched records — email existed in one stream but not both\n// Flag them for manual review or re-enrichment\nreturn items.map(item => ({\n  json: {\n    name:           item.json.name   || null,\n    email:          item.json.email,\n    company_domain: item.json.company_domain || null,\n    status:         \"unmatched\",\n    reason:         !item.json.name ? \"Email in Stream 2 only  - no name found\" : \"Email in Stream 1 only — no domain found\"\n  }\n}));"
+      },
+      "id": "056bfcc3-bd7b-40e9-aa03-579839d16278",
+      "name": "Unmatched Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        288
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1904,
+        160
+      ],
+      "id": "21e656e4-9eec-4d9e-aab1-0ae79897c602",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Stream 1: Names + Emails (simulating an ad platform or lead capture form)\n// Intentionally includes a duplicate to test deduplication\nreturn [\n  { json: { name: \"Aarav Sharma\",  email: \"aarav@example.com\"   } },\n  { json: { name: \"Priya Mehta\",   email: \"priya@techcorp.com\"   } },\n  { json: { name: \"Rohan Verma\",   email: \"rohan@startup.io\"     } },\n  { json: { name: \"Sneha Patel\",   email: \"sneha@ventures.co\"   } },\n  { json: { name: \"Arjun Nair\",    email: \"arjun@globalinc.com\" } },\n  { json: { name: \"Priya Mehta\",   email: \"priya@techcorp.com\"  } }\n];"
+      },
+      "id": "ffb40286-7273-4b97-abb1-8e18d4c17f9b",
+      "name": "Stream 1 - Names & Emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1600,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Stream 2: Emails + Company Domains (simulating a CRM or enrichment source)\n// Intentionally includes a duplicate and one extra email with no match in Stream 1\nreturn [\n  { json: { email: \"priya@techcorp.com\",   company_domain: \"techcorp.com\"   } },\n  { json: { email: \"aarav@example.com\",    company_domain: \"example.com\"    } },\n  { json: { email: \"arjun@globalinc.com\",  company_domain: \"globalinc.com\"  } },\n  { json: { email: \"sneha@ventures.co\",    company_domain: \"ventures.co\"    } },\n  { json: { email: \"rohan@startup.io\",     company_domain: \"startup.io\"     } },\n  { json: { email: \"rohan@startup.io\",     company_domain: \"startup.io\"     } },\n  { json: { email: \"ghost@unknown.org\",    company_domain: \"unknown.org\"    } }\n];"
+      },
+      "id": "77aae4cc-6dae-48f1-8866-e6c5e64b713b",
+      "name": "Stream 2  Emails & Domains",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1600,
+        240
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Dedup Stream 1": {
+      "main": [
+        [
+          {
+            "node": "Merge – Join on Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedup Stream 2": {
+      "main": [
+        [
+          {
+            "node": "Merge – Join on Email",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge – Join on Email": {
+      "main": [
+        [
+          {
+            "node": "Matched or Unmatched?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Matched or Unmatched?": {
+      "main": [
+        [
+          {
+            "node": "Matched Records",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unmatched Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Stream 1 - Names & Emails",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Stream 2  Emails & Domains",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stream 1 - Names & Emails": {
+      "main": [
+        [
+          {
+            "node": "Dedup Stream 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stream 2  Emails & Domains": {
+      "main": [
+        [
+          {
+            "node": "Dedup Stream 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "42cbef7a-b77c-437f-b3ec-553a4d1e9e65",
+  "meta": {
+    "instanceId": "745f2541f913670fb79c7c278fc01a421c8fb6df5bcfb3adf2b7a0509f09f066"
+  },
+  "id": "VNkKeOmfzd1PIGsJ",
+  "tags": []
+}
